@@ -1,0 +1,1 @@
+{"schema_version":1,"account_id":"deepseek-flash","revision":1,"enabled":true,"display_name":"DeepSeek Flash","priority":100,"default_for":["chat","tool_call"],"services":{"chat":{"api_key_env":"DEEPSEEK_API_KEY"}},"metadata":{"environment":"example","notes":"Minimal DeepSeek Flash account. chat is reused for tool_call; thinking defaults to enabled with high reasoning effort."}}

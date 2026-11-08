@@ -1,0 +1,217 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CGO_ENABLED: "1"
+
+jobs:
+  baseline-build:
+    name: baseline / build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build every package
+        run: go build ./...
+      - name: Run baseline tests
+        run: go test -count=1 ./...
+
+  contract-gate:
+    name: domain / contracts
+    needs: baseline-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Test versioned public contracts
+        run: go test -count=1 ./pkg/contracts/...
+      - name: Enforce public-contract dependency direction
+        shell: bash
+        run: |
+          set -euo pipefail
+          deps="$(go list -deps ./pkg/contracts/...)"
+          if grep -Eq '^vibe-agent/internal/' <<<"$deps"; then
+            echo "pkg/contracts must not depend on internal packages"
+            exit 1
+          fi
+
+  repo-policy:
+    name: gate / repo-policy
+    needs: baseline-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Check every Go package README
+        run: bash scripts/check-package-readmes.sh
+
+  account-domain:
+    name: domain / accounts
+    needs: contract-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Test account domain and ports
+        run: go test -count=1 ./internal/accounts/...
+
+  tool-domain:
+    name: domain / tools
+    needs: contract-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Test default tools
+        run: go test -count=1 ./tools/...
+
+  capability-domains:
+    name: domain / ${{ matrix.domain }}
+    needs: contract-gate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        domain:
+          - conversation
+          - eventledger
+          - contextmgr
+          - tooling
+          - knowledge
+          - llm
+          - sessionruntime
+          - observability
+          - operator
+          - platform
+          - bootstrap
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Test domain
+        run: go test -count=1 ./internal/${{ matrix.domain }}/...
+
+  hub-gate:
+    name: gate / hub
+    needs: account-domain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run hub-specific tests
+        run: go test -count=1 -v ./internal/hub/...
+      - name: Build hub
+        run: go build -trimpath -o /tmp/hub ./cmd/hub
+
+  sessiond-gate:
+    name: gate / sessiond
+    needs: account-domain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run sessiond-specific tests
+        run: go test -count=1 -v ./internal/sessiond/...
+      - name: Enforce sessiond dependency boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          deps="$(go list -deps ./internal/sessiond/...)"
+          if grep -Eq '^vibe-agent/internal/(hub|accounts/adapters)(/|$)' <<<"$deps"; then
+            echo "sessiond must not depend on hub implementation or account adapters"
+            exit 1
+          fi
+      - name: Build sessiond
+        run: go build -trimpath -o /tmp/sessiond ./cmd/sessiond
+
+  quality-gate:
+    name: gate / quality
+    needs:
+      - hub-gate
+      - sessiond-gate
+      - capability-domains
+      - tool-domain
+      - repo-policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Vet
+        run: go vet ./...
+      - name: Race tests
+        run: go test -race -count=3 ./...
+
+  windows-package:
+    name: baseline / windows-package
+    needs: quality-gate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build Windows executables
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force bin | Out-Null
+          go build -trimpath -o bin/hub.exe ./cmd/hub
+          go build -trimpath -o bin/sessiond.exe ./cmd/sessiond
+          go build -trimpath -o bin/startup.exe ./cmd/startup
+          go build -trimpath -o bin/tui.exe ./cmd/tui
+          @(
+            "commit=${{ github.sha }}"
+            "run=${{ github.run_id }}"
+            "built_at=$((Get-Date).ToUniversalTime().ToString('o'))"
+          ) | Set-Content -Encoding utf8 bin/version.txt
+      - name: Run snapshot/watch/history smoke
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-chain.ps1 -BinDir bin
+      - name: Run hidden PTY Todo Board tool-chain smoke
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tui-toolchain-smoke.ps1 -BinDir bin
+      - name: Run Windows end-to-end UAT
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/uat.ps1 -BinDir bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vibe-agent-windows-${{ github.sha }}
+          path: bin/*
+          if-no-files-found: error

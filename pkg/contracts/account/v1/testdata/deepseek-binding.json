@@ -1,0 +1,8 @@
+{
+  "capability": "chat",
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "thinking": {
+    "type": "enabled"
+  },
+  "reasoning_effort": "high"
+}

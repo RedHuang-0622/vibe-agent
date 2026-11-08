@@ -1,0 +1,12 @@
+# Local runtime data and real credentials must stay outside version control.
+config/*.local
+config/*.local.*
+data/
+bin/
+artifacts/
+vibecoding_history/
+*.log
+*.tmp
+.env
+.env.*
+!.env.example

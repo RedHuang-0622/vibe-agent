@@ -1,0 +1,17 @@
+{
+  "goal": "Implement the complete local vibe_agent runtime",
+  "workdir": "docs/2026-11-04-agent-runtime-implementation/",
+  "tasks": [
+    {"id": "G1", "name": "Contracts and wire protocol", "deps": []},
+    {"id": "G2", "name": "Event ledger and replay", "deps": ["G1"]},
+    {"id": "G3", "name": "Conversation actor and queue", "deps": ["G2"]},
+    {"id": "G4", "name": "Tool registry and default tools", "deps": ["G3"]},
+    {"id": "G5", "name": "Accounts and LLM adapters", "deps": ["G1"]},
+    {"id": "G6", "name": "Knowledge BM25 and hybrid retrieval", "deps": ["G4", "G5"]},
+    {"id": "G7", "name": "ReAct and compression integration", "deps": ["G3", "G4", "G5", "G6"]},
+    {"id": "G8", "name": "Trace and statistics projections", "deps": ["G2", "G7"]},
+    {"id": "G9", "name": "Hub and sessiond process lifecycle", "deps": ["G2", "G3", "G7", "G8"]},
+    {"id": "G10", "name": "startup, CLI and TUI", "deps": ["G5", "G8", "G9"]},
+    {"id": "G11", "name": "CI, docs and UAT", "deps": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10"]}
+  ]
+}
