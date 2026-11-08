@@ -213,6 +213,7 @@ go build -trimpath -o bin/tui.exe ./cmd/tui
 构建后先运行短链路冒烟，再运行完整 UAT：
 
 ```powershell
+python -m pip install -r scripts/requirements-pty.txt
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-chain.ps1 -BinDir bin
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tui-toolchain-smoke.ps1 -BinDir bin
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/uat.ps1 -BinDir bin
@@ -221,6 +222,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/uat.ps1 -BinDir bin
 `smoke-chain.ps1` 使用临时数据根验证 hub/sessiond 的 snapshot、history、
 watch timeout 和 A/B event_id 隔离；`tui-toolchain-smoke.ps1` 通过隐藏 PTY
 和 fake Anthropic-compatible provider 验证 `todo_board` 五步 CRUD 与 TUI 渲染。
+Windows job 显式使用 Python 3.12，并通过
+`scripts/requirements-pty.txt` 安装固定版本的 `pywinpty`。
 
 ## 11. 分支保护建议
 

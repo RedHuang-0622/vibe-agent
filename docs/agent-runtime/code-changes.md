@@ -32,6 +32,7 @@
 | `scripts/pty_tui_probe.py` | pywinpty 隐藏 PTY 驱动 TUI 并保存原始输出 | 复现 split harness 的 PTY snapshot 断言方式 |
 | `scripts/tui-real-api-smoke.ps1` | 真实 provider opt-in；验证 5 个 board action、事件配对、seq、secret scan；鉴权失败记 BLOCKED | WP-4 收窄后的单 TUI 真实工具链剧本 |
 | `scripts/tui-toolchain-smoke.ps1` | fake Anthropic-compatible provider 的 PTY CI 基线 | 无外部凭据时仍可回归传输与 CRUD 链路 |
+| `scripts/requirements-pty.txt` / `.github/workflows/ci.yml` | 固定并安装 `pywinpty==2.0.15`；脚本启动前做依赖检查 | 修复 Windows GitHub runner 缺少 `winpty` 导致的 CI 失败 |
 | `scripts/package-windows.ps1` | 构建四 exe Windows 压缩包、复制配置、生成内外 SHA256 并扫描明文 key | 提供可本地验收、可上传 GitHub Release 的无密钥发布物 |
 
 ### API / Compatibility

@@ -5,6 +5,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$ptyCheck = & python -c "import winpty; print('ok')" 2>&1
+if ($LASTEXITCODE -ne 0 -or ($ptyCheck | Out-String).Trim() -ne "ok") {
+    throw "pywinpty is required for the hidden PTY smoke. Run: python -m pip install -r scripts/requirements-pty.txt"
+}
 $bin = if ([System.IO.Path]::IsPathRooted($BinDir)) {
     [System.IO.Path]::GetFullPath($BinDir)
 } else {

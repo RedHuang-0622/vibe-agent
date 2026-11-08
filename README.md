@@ -272,6 +272,7 @@ powershell -File scripts/package-windows.ps1 -Version 0.1.0
 隐藏 PTY 工具链冒烟（fake provider，默认 CI）：
 
 ```powershell
+python -m pip install -r scripts/requirements-pty.txt
 powershell -File scripts/tui-toolchain-smoke.ps1 -BinDir bin
 ```
 
