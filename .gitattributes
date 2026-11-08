@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.exe binary
+*.zip binary
+
+# Keep exported transcripts byte-for-byte stable so their SHA256 manifest stays valid.
+vibecoding_history/** -text

@@ -1,0 +1,15 @@
+{
+  "account": {
+    "account_id": "embedding-main",
+    "revision": 1
+  },
+  "capability": "embedding",
+  "case_id": "embedding-basic",
+  "timeout_ms": 30000,
+  "input": {
+    "texts": [
+      "alpha",
+      "beta"
+    ]
+  }
+}

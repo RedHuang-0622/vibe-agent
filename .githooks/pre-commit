@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+case "$(uname -s 2>/dev/null || echo unknown)" in
+  MINGW*|MSYS*|CYGWIN*)
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check-package-readmes.ps1
+    ;;
+  *)
+    bash scripts/check-package-readmes.sh
+    ;;
+esac
+go build ./...
+go test -count=1 ./...
